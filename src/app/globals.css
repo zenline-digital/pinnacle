@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --gold: #c9a84c;
+  --gold-light: #e8c96a;
+  --gold-dim: #8a6f30;
+  --surface: #12121a;
+  --surface-2: #1a1a28;
+  --surface-3: #22223a;
+  --border: rgba(255,255,255,0.08);
+  --text-dim: rgba(255,255,255,0.45);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-inter), sans-serif;
+  background: #0a0a0f;
+}
+
+.font-display { font-family: var(--font-sora), sans-serif; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.card-2 {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #c9a84c, #e8c96a, #c9a84c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border {
+  border: 1px solid var(--gold-dim);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #c9a84c, #e8c96a);
+  color: #0a0a0f;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sora), sans-serif;
+}
+.btn-gold:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.btn-ghost {
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { background: var(--surface-2); color: white; }
+
+.scrollbar-thin::-webkit-scrollbar { width: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 4px; }
+
+input, textarea, select {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: white;
+  border-radius: 10px;
+  padding: 10px 14px;
+  width: 100%;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--gold-dim);
+}
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
+select option { background: #1a1a28; }
+
+label { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 6px; display: block; }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.status-done { background: rgba(34,197,94,0.15); color: #22c55e; }
+.status-progress { background: rgba(234,179,8,0.15); color: #eab308; }
+.status-todo { background: rgba(99,102,241,0.15); color: #818cf8; }
+.status-paused { background: rgba(107,114,128,0.15); color: #9ca3af; }
+.status-overdue { background: rgba(239,68,68,0.15); color: #ef4444; }
