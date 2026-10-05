@@ -11,6 +11,8 @@ const NAV = [
   { href: '/analysis', icon: '📊', label: 'Analysis' },
   { href: '/goals', icon: '🎯', label: 'Life Goals' },
   { href: '/calendar', icon: '📅', label: 'Payments' },
+  { href: '/investments', icon: '🇮🇳', label: 'Investments' },
+  { href: '/gold', icon: '⚡', label: 'Gold Signal' },
 ];
 
 interface AppShellProps {
