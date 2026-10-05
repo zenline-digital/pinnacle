@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   if (!await getSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const months = parseInt(searchParams.get('months') || '6');
+
   const totals = await sql`
     SELECT
       to_char(date, 'YYYY-MM') as month,
@@ -16,12 +17,27 @@ export async function GET(req: NextRequest) {
       SUM(CASE WHEN category = 'Credit Card Payment' THEN amount ELSE 0 END) as credit_cards,
       SUM(CASE WHEN category = 'Insurance' THEN amount ELSE 0 END) as insurance,
       SUM(CASE WHEN category = 'Utilities' THEN amount ELSE 0 END) as utilities,
-      SUM(CASE WHEN category = 'Subscription' THEN amount ELSE 0 END) as subscriptions
+      SUM(CASE WHEN category = 'Subscription' THEN amount ELSE 0 END) as subscriptions,
+      SUM(CASE WHEN category NOT IN ('Loan Repayment','Rent','Credit Card Payment','Insurance','Utilities','Subscription') THEN amount ELSE 0 END) as other_fixed
     FROM transactions
     WHERE type = 'debit' AND is_fixed = true
       AND date >= CURRENT_DATE - INTERVAL '1 month' * ${months}
     GROUP BY to_char(date, 'YYYY-MM'), to_char(date, 'Mon YYYY')
     ORDER BY month DESC
   `;
-  return NextResponse.json({ totals: totals.rows });
+
+  const byCategory = await sql`
+    SELECT
+      to_char(date, 'YYYY-MM') as month,
+      category,
+      SUM(amount) as total,
+      COUNT(*) as count
+    FROM transactions
+    WHERE type = 'debit' AND is_fixed = true
+      AND date >= CURRENT_DATE - INTERVAL '1 month' * ${months}
+    GROUP BY to_char(date, 'YYYY-MM'), category
+    ORDER BY month DESC, total DESC
+  `;
+
+  return NextResponse.json({ totals: totals.rows, byCategory: byCategory.rows });
 }

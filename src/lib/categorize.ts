@@ -25,91 +25,48 @@ export const CATEGORIES = {
 
 export type CategoryName = keyof typeof CATEGORIES;
 
-const CATEGORY_RULES: Array<{
-  pattern: RegExp;
-  category: CategoryName;
-  isFixed?: boolean;
-}> = [
-  // Income patterns
-  { pattern: /salary|wps salary|payroll/i, category: 'Salary & Income', isFixed: true },
-  { pattern: /utility bill payments.*inward|npss.*salary|allowance.*inward|overtime.*inward/i, category: 'Salary & Income', isFixed: true },
-  
-  // Loan repayments
-  { pattern: /finance repayment|to loan:|loan repayment|loan payment/i, category: 'Loan Repayment', isFixed: true },
-  
-  // Rent
-  { pattern: /rent|:rent|to.*rent/i, category: 'Rent', isFixed: true },
-  
-  // Credit card
-  { pattern: /visa card payment|credit card payment|card payment|crdpay|dibipp/i, category: 'Credit Card Payment', isFixed: true },
+const CATEGORY_RULES: Array<{ pattern: RegExp; category: CategoryName; isFixed?: boolean }> = [
+  { pattern: /\bwps salary\b|wps.*salary/i, category: 'Salary & Income', isFixed: true },
+  { pattern: /acwps-\d{2}-\d{2}-/i, category: 'Salary & Income', isFixed: true },
+  { pattern: /\[sly\]|salary\s*\]/i, category: 'Salary & Income', isFixed: true },
+  { pattern: /inward.*\bsalary\b|\bsalary\b.*inward/i, category: 'Salary & Income', isFixed: true },
+  { pattern: /finance repayment|to loan:/i, category: 'Loan Repayment', isFixed: true },
+  { pattern: /loan repayment|loan payment|emi payment/i, category: 'Loan Repayment', isFixed: true },
+  { pattern: /deferment fees|postponement/i, category: 'Loan Repayment', isFixed: true },
+  { pattern: /mb fund transfer.*:rent\b|transfer.*001523219125401/i, category: 'Rent', isFixed: true },
+  { pattern: /\brent payment\b|\bpay rent\b/i, category: 'Rent', isFixed: true },
+  { pattern: /\bvisa card payment\b/i, category: 'Credit Card Payment', isFixed: true },
   { pattern: /agency commissions.*dibipp|visa card payment.*dibipp/i, category: 'Credit Card Payment', isFixed: true },
-  
-  // Dining
-  { pattern: /restaurant|catering|kitopi|green chillies|juice n bites|food.*dubai/i, category: 'Dining & Restaurants' },
-  { pattern: /noon.*food|american|americana|kuwait food/i, category: 'Dining & Restaurants' },
-  
-  // Groceries
-  { pattern: /grocery|groceries|supermarket|lulu|carrefour|spinneys|waitrose|geant/i, category: 'Groceries' },
-  
-  // ATM
-  { pattern: /atm cash|remit-to-atm|atm withdrawal|cash withdrawal/i, category: 'ATM Withdrawal' },
-  
-  // Utilities
-  { pattern: /utility bill|dewa|telecom|etisalat|du telecom|internet|phone bill/i, category: 'Utilities', isFixed: true },
-  
-  // Shopping / E-commerce
-  { pattern: /noon|amazon|noon one|noon minutes|noon dubai/i, category: 'Shopping' },
-  { pattern: /tabby|shein|zara|h&m/i, category: 'Shopping' },
-  
-  // Transport
-  { pattern: /taxi|uber|careem|nol|rta|petrol|fuel|parking|transport/i, category: 'Transport' },
-  
-  // Family support
-  { pattern: /family support|family.*inward/i, category: 'Family Support' },
-  
-  // Insurance / Takaful
-  { pattern: /takaful|insurance|credit shield/i, category: 'Insurance', isFixed: true },
-  
-  // Bank charges
-  { pattern: /bank charge|agency commission.*cb charges|agency commission.*dib charges|fee|charges/i, category: 'Bank Charges' },
-  { pattern: /iloe takaful charges|deferment fees|billed finance|billed profit/i, category: 'Bank Charges', isFixed: true },
-  
-  // Subscriptions
-  { pattern: /subscription fee|netflix|spotify|apple|microsoft|google|noon one/i, category: 'Subscription', isFixed: true },
-  
-  // Charity
-  { pattern: /charitable contribution|charity|donation/i, category: 'Charity' },
-  
-  // Travel
-  { pattern: /airport|travel|airline|hotel|booking\.com|airbnb/i, category: 'Travel' },
-  
-  // Investment
-  { pattern: /investment|trading|stocks?|brokerage|saving/i, category: 'Investment' },
-  
-  // Transfers (generic - last resort)
-  { pattern: /mb fund transfer|inward funds transfer|own account/i, category: 'Transfer' },
+  { pattern: /mob-crdpay|crdpay\d/i, category: 'Credit Card Payment', isFixed: true },
+  { pattern: /\bcredit card payment\b/i, category: 'Credit Card Payment', isFixed: true },
+  { pattern: /restaurant|catering|kitopi|green chillies|juice n bites/i, category: 'Dining & Restaurants' },
+  { pattern: /\bnoon food\b|noon minutes/i, category: 'Dining & Restaurants' },
+  { pattern: /\bgrocery\b|groceries|supermarket|lulu|carrefour|spinneys/i, category: 'Groceries' },
+  { pattern: /remit-to-atm|atm cash withdrawal|atm withdrawal|\bcdm cash\b/i, category: 'ATM Withdrawal' },
+  { pattern: /\[utl\]|utility bill payment/i, category: 'Utilities', isFixed: true },
+  { pattern: /dewa|etisalat|\bdu telecom\b/i, category: 'Utilities', isFixed: true },
+  { pattern: /\bnoon one\b|\bamazon now\b|\bnoon dubai\b/i, category: 'Shopping' },
+  { pattern: /\buber\b|\bcareem\b|\bnol card\b|\brta\b/i, category: 'Transport' },
+  { pattern: /family support.*inward|\[fsu\]/i, category: 'Family Support' },
+  { pattern: /takaful charges|credit shield/i, category: 'Insurance', isFixed: true },
+  { pattern: /agency commissions.*\b(cb|dib)\b charges/i, category: 'Bank Charges' },
+  { pattern: /iloe takaful|billed finance|billed profit|vat on/i, category: 'Bank Charges' },
+  { pattern: /annual membership fee/i, category: 'Bank Charges', isFixed: true },
+  { pattern: /airport companion|\[str\]/i, category: 'Travel' },
+  { pattern: /charitable contribution|\[chc\]/i, category: 'Charity' },
+  { pattern: /inward uae funds transfer ipi/i, category: 'Investment' },
+  { pattern: /mb fund transfer|inward funds transfer|own account trnsfer/i, category: 'Transfer' },
+  { pattern: /financial services.*inward/i, category: 'Transfer' },
 ];
 
-export function categorizeTransaction(description: string, type: 'credit' | 'debit'): {
-  category: CategoryName;
-  isFixed: boolean;
-} {
-  const upper = description.toUpperCase();
-  
+export function categorizeTransaction(description: string, type: 'credit' | 'debit'): { category: CategoryName; isFixed: boolean } {
   for (const rule of CATEGORY_RULES) {
     if (rule.pattern.test(description)) {
       const cat = CATEGORIES[rule.category];
-      return {
-        category: rule.category,
-        isFixed: rule.isFixed !== undefined ? rule.isFixed : cat.isFixed,
-      };
+      return { category: rule.category, isFixed: rule.isFixed !== undefined ? rule.isFixed : cat.isFixed };
     }
   }
-
-  if (type === 'credit') {
-    return { category: 'Salary & Income', isFixed: false };
-  }
-
+  if (type === 'credit') return { category: 'Transfer', isFixed: false };
   return { category: 'Uncategorized', isFixed: false };
 }
 
