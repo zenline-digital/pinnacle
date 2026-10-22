@@ -5,32 +5,63 @@ import { parseCSVStatement, parsePDFBankStatement, detectBankFromStatement } fro
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Server-side PDF parsing using pdftotext -layout (best for tabular bank statements)
+// Server-side PDF parsing - tries pdftotext first, falls back to pdf2json
 async function extractPDFTextServerSide(buffer: Buffer): Promise<string> {
   const { execSync } = require('child_process');
   const fs = require('fs');
   const os = require('os');
   const path = require('path');
   const tmp = path.join(os.tmpdir(), `stmt_${Date.now()}.pdf`);
+  const pyScript = path.join(os.tmpdir(), `extract_${Date.now()}.py`);
+  fs.writeFileSync(tmp, buffer);
+  
+  // Try pdftotext -layout first (best column preservation)
   try {
-    fs.writeFileSync(tmp, buffer);
     const text = execSync(`pdftotext -layout "${tmp}" -`, { maxBuffer: 10 * 1024 * 1024 }).toString();
     fs.unlinkSync(tmp);
-    return text;
+    if (text && text.trim().length > 50) return text;
+  } catch {}
+
+  // Try Python pypdf with layout mode (available on Vercel)
+  try {
+    fs.writeFileSync(pyScript, `
+import sys
+try:
+    from pypdf import PdfReader
+    reader = PdfReader("${tmp.replace(/\/g, '\\')}")
+    text = ""
+    for page in reader.pages:
+        try:
+            t = page.extract_text(extraction_mode="layout")
+            if t: text += t + "\n"
+        except:
+            t = page.extract_text()
+            if t: text += t + "\n"
+    print(text)
+except Exception as e:
+    sys.stderr.write(str(e))
+    sys.exit(1)
+`);
+    const text = execSync(`python3 "${pyScript}"`, { maxBuffer: 10 * 1024 * 1024 }).toString();
+    fs.unlinkSync(pyScript);
+    fs.unlinkSync(tmp);
+    if (text && text.trim().length > 50) return text;
   } catch {
-    // Fallback to pdf2json if pdftotext not available
-    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-    return new Promise((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const PDFParser = require('pdf2json');
-      const parser = new PDFParser(null, 1);
-      parser.on('pdfParser_dataError', (err: any) => reject(new Error(err.parserError || err)));
-      parser.on('pdfParser_dataReady', () => {
-        try { resolve(parser.getRawTextContent() || ''); } catch (e: any) { reject(e); }
-      });
-      parser.parseBuffer(buffer);
-    });
+    try { fs.unlinkSync(pyScript); } catch {}
   }
+
+  // Final fallback: pdf2json
+  try { fs.unlinkSync(tmp); } catch {}
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const PDFParser = require('pdf2json');
+    const parser = new PDFParser(null, 1);
+    parser.on('pdfParser_dataError', (err: any) => reject(new Error(err.parserError || err)));
+    parser.on('pdfParser_dataReady', () => {
+      try { resolve(parser.getRawTextContent() || ''); } catch (e: any) { reject(e); }
+    });
+    parser.parseBuffer(buffer);
+  });
 }
 export async function POST(req: NextRequest) {
   if (!await getSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
