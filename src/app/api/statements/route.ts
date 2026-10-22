@@ -50,6 +50,14 @@ except Exception as e:
     try { fs.unlinkSync(pyScript); } catch {}
   }
 
+  // Try pdf-parse (pure Node.js)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse');
+    const data = await pdfParse(buffer);
+    if (data.text && data.text.trim().length > 50) return data.text;
+  } catch {}
+
   // Final fallback: pdf2json
   try { fs.unlinkSync(tmp); } catch {}
   return new Promise((resolve, reject) => {
