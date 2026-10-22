@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "vercel-build": "apt-get install -y poppler-utils 2>/dev/null || true && next build"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
