@@ -110,47 +110,15 @@ function AccountsContent() {
     setUploadResult(null);
 
     try {
-      const isCSV = file.name.toLowerCase().endsWith('.csv');
-      if (isCSV) {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('account_id', accountId);
-        fd.append('bank_name', bankName);
-        const res = await fetch('/api/statements', { method: 'POST', body: fd });
-        const data = await res.json();
-        setUploadResult(data);
-        if (data.ok) loadAccounts();
-      } else {
-        // PDF: extract text in browser first to avoid server timeout
-        const pdfjsLib = await loadPDFJS();
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let fullText = '';
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const page = await pdf.getPage(pageNum);
-          const textContent = await page.getTextContent();
-          const rowMap: Record<number, Array<{x: number, str: string}>> = {};
-          for (const item of textContent.items as any[]) {
-            if (!item.str || !item.str.trim()) continue;
-            const y = Math.round(item.transform[5] / 3) * 3;
-            if (!rowMap[y]) rowMap[y] = [];
-            rowMap[y].push({ x: item.transform[4], str: item.str });
-          }
-          const rows = Object.keys(rowMap)
-            .sort((a, b) => Number(b) - Number(a))
-            .map(y => rowMap[Number(y)].sort((a, b) => a.x - b.x).map(i => i.str).join(' ').trim())
-            .filter(r => r.length > 2);
-          fullText += rows.join('\n') + '\n';
-        }
-        const res = await fetch('/api/statements', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pdf_text: fullText, file_name: file.name, file_size: file.size, account_id: accountId, bank_name: bankName, auto_detect: true }),
-        });
-        const data = await res.json();
-        setUploadResult(data);
-        if (data.ok) loadAccounts();
-      }
+      // Send all files as binary - server uses pdftotext for accurate parsing
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('account_id', accountId);
+      fd.append('bank_name', bankName);
+      const res = await fetch('/api/statements', { method: 'POST', body: fd });
+      const data = await res.json();
+      setUploadResult(data);
+      if (data.ok) loadAccounts();
     } catch (err: any) {
       setUploadResult({ ok: false, error: err.message || 'Upload failed' });
     }
