@@ -4,6 +4,20 @@ import { getSession } from '@/lib/auth';
 import { parseCSVStatement, parsePDFBankStatement, detectBankFromStatement } from '@/lib/parsers';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+// Server-side PDF parsing using pdf2json (more accurate than browser PDF.js)
+async function extractPDFTextServerSide(buffer: Buffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const PDFParser = require('pdf2json');
+    const parser = new PDFParser(null, 1);
+    parser.on('pdfParser_dataError', (err: any) => reject(new Error(err.parserError || err)));
+    parser.on('pdfParser_dataReady', () => {
+      try { resolve(parser.getRawTextContent() || ''); } catch (e: any) { reject(e); }
+    });
+    parser.parseBuffer(buffer);
+  });
+}
 export async function POST(req: NextRequest) {
   if (!await getSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const contentType = req.headers.get('content-type') || '';
@@ -14,7 +28,18 @@ export async function POST(req: NextRequest) {
     const fd = await req.formData(); const file=fd.get('file') as File;
     if (!file) return NextResponse.json({ok:false,error:'No file'},{status:400});
     fileName=file.name; fileSize=file.size; accountId=fd.get('account_id') as string||''; bankName=fd.get('bank_name') as string||'';
-    csvText=new TextDecoder().decode(await file.arrayBuffer());
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const isCSV = fileName.toLowerCase().endsWith('.csv');
+    if (isCSV) {
+      csvText = new TextDecoder().decode(buffer);
+    } else {
+      // Use server-side pdf2json for accurate row-by-row parsing
+      try {
+        pdfText = await extractPDFTextServerSide(buffer);
+      } catch {
+        csvText = new TextDecoder().decode(buffer);
+      }
+    }
   }
   try {
     if (fileSize>0) { const ex=await sql`SELECT id,transaction_count FROM bank_statements WHERE file_name=${fileName} AND file_size=${fileSize} LIMIT 1`; if (ex.rows.length>0) return NextResponse.json({ok:true,already_exists:true,statement_id:ex.rows[0].id,inserted:0,skipped:0,parsed:0}); }
