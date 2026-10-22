@@ -5,18 +5,32 @@ import { parseCSVStatement, parsePDFBankStatement, detectBankFromStatement } fro
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Server-side PDF parsing using pdf2json (more accurate than browser PDF.js)
+// Server-side PDF parsing using pdftotext -layout (best for tabular bank statements)
 async function extractPDFTextServerSide(buffer: Buffer): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const PDFParser = require('pdf2json');
-    const parser = new PDFParser(null, 1);
-    parser.on('pdfParser_dataError', (err: any) => reject(new Error(err.parserError || err)));
-    parser.on('pdfParser_dataReady', () => {
-      try { resolve(parser.getRawTextContent() || ''); } catch (e: any) { reject(e); }
+  const { execSync } = require('child_process');
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const tmp = path.join(os.tmpdir(), `stmt_${Date.now()}.pdf`);
+  try {
+    fs.writeFileSync(tmp, buffer);
+    const text = execSync(`pdftotext -layout "${tmp}" -`, { maxBuffer: 10 * 1024 * 1024 }).toString();
+    fs.unlinkSync(tmp);
+    return text;
+  } catch {
+    // Fallback to pdf2json if pdftotext not available
+    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    return new Promise((resolve, reject) => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const PDFParser = require('pdf2json');
+      const parser = new PDFParser(null, 1);
+      parser.on('pdfParser_dataError', (err: any) => reject(new Error(err.parserError || err)));
+      parser.on('pdfParser_dataReady', () => {
+        try { resolve(parser.getRawTextContent() || ''); } catch (e: any) { reject(e); }
+      });
+      parser.parseBuffer(buffer);
     });
-    parser.parseBuffer(buffer);
-  });
+  }
 }
 export async function POST(req: NextRequest) {
   if (!await getSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
