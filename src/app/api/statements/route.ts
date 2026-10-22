@@ -28,7 +28,7 @@ async function extractPDFTextServerSide(buffer: Buffer): Promise<string> {
 import sys
 try:
     from pypdf import PdfReader
-    reader = PdfReader("${tmp.replace(/\/g, '\\')}")
+    reader = PdfReader(sys.argv[1])
     text = ""
     for page in reader.pages:
         try:
@@ -42,7 +42,7 @@ except Exception as e:
     sys.stderr.write(str(e))
     sys.exit(1)
 `);
-    const text = execSync(`python3 "${pyScript}"`, { maxBuffer: 10 * 1024 * 1024 }).toString();
+    const text = execSync(`python3 "${pyScript}" "${tmp}"`, { maxBuffer: 10 * 1024 * 1024 }).toString();
     fs.unlinkSync(pyScript);
     fs.unlinkSync(tmp);
     if (text && text.trim().length > 50) return text;
